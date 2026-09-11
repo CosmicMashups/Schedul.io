@@ -25,6 +25,11 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    # Managed Postgres (Supabase, etc.) isn't a blank slate the way a fresh local `docker
+    # compose` database is — Flyway's non-empty-schema check can trigger baseline-on-migrate
+    # on first deploy and skip V1 entirely (marking it "already applied" without running it).
+    # Baselining at 0, below every real migration, guarantees V1..V9 always actually execute.
+    baseline-version: 0
 
   data:
     redis:
