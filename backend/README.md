@@ -69,6 +69,36 @@ appointment or call a queue ticket — that's the stub gateway firing.
 
 Swagger UI: `http://localhost:8080/swagger-ui.html`
 
+## Database: Supabase (hosted Postgres)
+
+Chosen over Neon for the production path — Supabase's compute is always-on rather than
+scale-to-zero, so there's no cold-start latency the first time a patient hits the API after a
+period of inactivity. That tradeoff (paying for idle compute) is the right one once real
+clinics depend on this, even though it's the more expensive option at low/spiky traffic.
+
+1. Create a project at [supabase.com](https://supabase.com) — free tier (500MB) is enough to
+   start; upgrade to Pro ($25/mo, 8GB included) before onboarding a real clinic.
+2. In the project dashboard, go to **Project Settings → Database → Connection info**. Use the
+   **Direct connection** (port `5432`), not the Session/Transaction pooler — this app already
+   manages its own connection pool via HikariCP (`maximum-pool-size: 20`), so layering
+   Supabase's PgBouncer pooler underneath it adds nothing and, in Transaction mode, actively
+   breaks Hibernate's server-side prepared statements.
+3. Set these env vars wherever the backend runs (Render, etc.):
+
+   | Env var | Value |
+   |---|---|
+   | `DB_HOST` | the project's direct-connection host, e.g. `db.<project-ref>.supabase.co` |
+   | `DB_PORT` | `5432` |
+   | `DB_NAME` | `postgres` (Supabase's default database name) |
+   | `DB_USER` | `postgres` |
+   | `DB_PASSWORD` | the database password you set when creating the project |
+   | `DB_SSL_PARAMS` | `?sslmode=require` — Supabase requires SSL; local dev leaves this unset |
+
+   Flyway runs automatically on startup (`spring.flyway.enabled: true`) and will create all 9
+   migrations' worth of schema against the empty Supabase database the first time the app boots.
+4. Local dev is unaffected — `DB_SSL_PARAMS` defaults to empty, so `docker compose up -d`
+   against local Postgres still works with no SSL params appended.
+
 ## What's deliberately NOT here yet
 
 A real SMS/email gateway integration, a reminder scheduler (7-day/24-hour/2-hour, section 30),

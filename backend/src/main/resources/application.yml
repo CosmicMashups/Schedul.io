@@ -3,7 +3,9 @@ spring:
     name: clinic-platform
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:clinic_platform}
+    # DB_SSL_PARAMS is empty for local/plain-Postgres dev; set it to "?sslmode=require" (Supabase,
+    # Neon, most managed Postgres) via env var in hosted environments — see backend/README.md.
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:clinic_platform}${DB_SSL_PARAMS:}
     username: ${DB_USER:clinic}
     password: ${DB_PASSWORD:clinic}
     hikari:
