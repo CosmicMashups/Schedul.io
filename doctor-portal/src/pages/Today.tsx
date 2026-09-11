@@ -135,7 +135,7 @@ export default function Today() {
               </div>
               {upNext.status === 'WAITING' ? (
                 <button
-                  onClick={() => run(() => queueId && callNext(queueId), 'Patient called.')}
+                  onClick={() => queueId && run(() => callNext(queueId), 'Patient called.')}
                   disabled={busy || !queueId}
                   className="btn-press flex items-center gap-2 rounded-full bg-teal px-5 py-2.5 text-sm font-semibold text-slate hover:bg-teal-light focus-ring disabled:opacity-50"
                 >
