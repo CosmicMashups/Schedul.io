@@ -6,6 +6,7 @@ import type { AppointmentResponse, SlotResponse } from '../api/types';
 import { StatusPill } from '../components/StatusPill';
 import { SlotPicker } from '../components/SlotPicker';
 import { SelectField } from '../components/Field';
+import { CardSkeleton } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
 import { CalendarClock, XCircle } from 'lucide-react';
 
@@ -29,6 +30,7 @@ export default function AppointmentDetail() {
   const [rescheduleSlots, setRescheduleSlots] = useState<SlotResponse[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<SlotResponse | null>(null);
   const [busy, setBusy] = useState(false);
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
   const toast = useToast();
 
   function load() {
@@ -39,10 +41,15 @@ export default function AppointmentDetail() {
   async function startReschedule() {
     if (!appointment) return;
     setMode('reschedule');
+    setRescheduleLoading(true);
     const from = new Date().toISOString().slice(0, 10);
     const to = new Date(Date.now() + 14 * 86400_000).toISOString().slice(0, 10);
-    const res = await getAvailability({ practitionerId: appointment.practitionerId, clinicId: appointment.clinicId, from, to });
-    setRescheduleSlots(res.slots);
+    try {
+      const res = await getAvailability({ practitionerId: appointment.practitionerId, clinicId: appointment.clinicId, from, to });
+      setRescheduleSlots(res.slots);
+    } finally {
+      setRescheduleLoading(false);
+    }
   }
 
   async function onConfirmCancel() {
@@ -83,7 +90,7 @@ export default function AppointmentDetail() {
     }
   }
 
-  if (!appointment) return <p className="text-sm text-ink/50">Loading…</p>;
+  if (!appointment) return <div className="max-w-md animate-page"><CardSkeleton /></div>;
 
   const start = new Date(appointment.scheduledStart);
 
@@ -94,7 +101,7 @@ export default function AppointmentDetail() {
           <h1 className="font-display text-2xl text-ink mb-1">
             {start.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
           </h1>
-          <p className="text-ink/60">{start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</p>
+          <p className="text-ink/60 tabular-nums">{start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</p>
         </div>
         <StatusPill status={appointment.status} />
       </div>
@@ -136,7 +143,7 @@ export default function AppointmentDetail() {
 
       {mode === 'reschedule' && (
         <div className="space-y-4">
-          <SlotPicker slots={rescheduleSlots} selectedSlotId={selectedSlot?.slotId ?? null} onSelect={onSelectRescheduleSlot} />
+          <SlotPicker slots={rescheduleSlots} selectedSlotId={selectedSlot?.slotId ?? null} onSelect={onSelectRescheduleSlot} loading={rescheduleLoading} />
           {selectedSlot && (
             <button
               onClick={onConfirmReschedule}

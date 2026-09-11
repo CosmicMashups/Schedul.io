@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { ListOrdered, PhoneCall, PlusCircle, SkipForward, UserX2 } from 'lucide-react';
+import { Clock3, ListOrdered, PhoneCall, PlusCircle, SkipForward, UserX2 } from 'lucide-react';
 import { listClinics } from '../api/clinic';
 import { searchPatients } from '../api/patients';
 import {
@@ -8,6 +8,7 @@ import {
 import { ApiError } from '../api/client';
 import type { ClinicResponse, PatientResponse, QueueResponse, QueueTicketResponse } from '../api/types';
 import { EmptyState } from '../components/EmptyState';
+import { Skeleton } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
 import { Spinner } from '../components/Spinner';
 
@@ -16,6 +17,9 @@ export default function Queue() {
   const [clinicId, setClinicId] = useState('');
   const [queue, setQueue] = useState<QueueResponse | null>(null);
   const [tickets, setTickets] = useState<QueueTicketResponse[]>([]);
+  // Fixed: without a loading flag, "No queue yet for this clinic" briefly flashed on every
+  // clinic switch, before that clinic's queue had a chance to load.
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [showWalkIn, setShowWalkIn] = useState(false);
   const toast = useToast();
@@ -28,6 +32,7 @@ export default function Queue() {
   }, []);
 
   async function loadQueue(cId: string) {
+    setLoading(true);
     try {
       const queues = await listQueues(cId);
       const doctorQueue = queues.find((q) => q.type === 'DOCTOR') ?? null;
@@ -35,6 +40,8 @@ export default function Queue() {
       setTickets(doctorQueue ? await listActiveTickets(doctorQueue.id) : []);
     } catch (err) {
       toast.show(err instanceof ApiError ? err.message : 'Could not load the queue.', 'error');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -84,14 +91,26 @@ export default function Queue() {
         <WalkInForm queueId={queue.id} onDone={() => { setShowWalkIn(false); loadQueue(clinicId); toast.show('Walk-in added to the queue.'); }} />
       )}
 
-      {!queue && <div className="panel"><EmptyState icon={ListOrdered} title="No queue yet for this clinic" description="It's created automatically on first check-in." /></div>}
+      {/* Only show the full skeleton on the first load (or a clinic switch, which also clears
+          `queue`) — action buttons (call next, complete, skip…) also trigger loadQueue to
+          refresh, and swapping the whole panel out for a skeleton on every click would be a
+          worse regression than the flash this fixes. Those already have their own `busy` state. */}
+      {loading && !queue && (
+        <div className="space-y-6">
+          <Skeleton className="h-28 rounded-card" />
+          <Skeleton className="h-40 rounded-card" />
+        </div>
+      )}
+
+      {!loading && !queue && <div className="panel"><EmptyState icon={ListOrdered} title="No queue yet for this clinic" description="It's created automatically on first check-in." /></div>}
 
       {queue && (
         <>
           <div className="now-serving rounded-card p-6 mb-6 text-white flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-widest opacity-70 mb-1">Now serving</p>
-              <p className="font-mono text-4xl font-semibold animate-count-pop">{nowServing?.ticketNumber ?? '—'}</p>
+              <p className="font-mono text-4xl font-semibold tabular-nums animate-count-pop">{nowServing?.ticketNumber ?? '—'}</p>
+              {nowServing?.servingStartedAt && <ElapsedTime since={nowServing.servingStartedAt} />}
             </div>
             {nowServing ? (
               <button
@@ -121,7 +140,7 @@ export default function Queue() {
               {waiting.map((t) => (
                 <div key={t.id} className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-lg text-ink">{t.ticketNumber}</span>
+                    <span className="font-mono text-lg text-ink tabular-nums">{t.ticketNumber}</span>
                     {t.status === 'CALLED' && <span className="text-xs text-amber font-medium bg-amber/10 px-2 py-0.5 rounded-full">Called</span>}
                   </div>
                   <div className="flex gap-1.5">
@@ -138,6 +157,25 @@ export default function Queue() {
         </>
       )}
     </div>
+  );
+}
+
+/** Live elapsed time since a ticket started being served — updates every 15s. Gives staff a
+    real sense of how long the current consultation has run, instead of a static ticket number
+    with no time context. */
+function ElapsedTime({ since }: { since: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const minutes = Math.max(0, Math.floor((now - new Date(since).getTime()) / 60_000));
+  return (
+    <p className="flex items-center gap-1 text-xs opacity-70 mt-1">
+      <Clock3 size={11} />
+      <span className="tabular-nums">{minutes} min</span>
+    </p>
   );
 }
 

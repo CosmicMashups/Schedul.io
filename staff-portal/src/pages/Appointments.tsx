@@ -97,7 +97,7 @@ export default function Appointments() {
 
       {!showNewForm && !rescheduling && (
         <>
-          {loading && (
+          {loading && appointments.length === 0 && (
             <div className="panel p-4 space-y-3">
               {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
             </div>
@@ -107,22 +107,22 @@ export default function Appointments() {
             <div className="panel"><EmptyState icon={CalendarClock} title="No appointments match this filter" /></div>
           )}
 
-          {!loading && appointments.length > 0 && (
+          {appointments.length > 0 && (
             <div className="panel overflow-hidden">
               <table className="data-table w-full">
                 <thead>
                   <tr>
-                    <th>When</th>
-                    <th>Status</th>
-                    <th>Reason</th>
-                    <th>Source</th>
-                    <th></th>
+                    <th scope="col">When</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Reason</th>
+                    <th scope="col">Source</th>
+                    <th scope="col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
                   {appointments.map((a) => (
                     <tr key={a.id} className={busyId === a.id ? 'opacity-50' : ''}>
-                      <td className="font-mono text-xs">
+                      <td className="font-mono text-xs tabular-nums">
                         {new Date(a.scheduledStart).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                       </td>
                       <td><StatusPill status={a.status} /></td>
@@ -183,6 +183,7 @@ function NewAppointmentForm({ onDone }: { onDone: () => void }) {
 
   const [slots, setSlots] = useState<SlotResponse[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<SlotResponse | null>(null);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
@@ -205,6 +206,7 @@ function NewAppointmentForm({ onDone }: { onDone: () => void }) {
     if (!practitionerId || !clinicId) return;
     setSlots([]);
     setSelectedSlot(null);
+    setSlotsLoading(true);
     const from = new Date().toISOString().slice(0, 10);
     const to = new Date(Date.now() + 14 * 86400_000).toISOString().slice(0, 10);
     try {
@@ -212,6 +214,8 @@ function NewAppointmentForm({ onDone }: { onDone: () => void }) {
       setSlots(res.slots);
     } catch (err) {
       toast.show(err instanceof ApiError ? err.message : 'Could not load availability.', 'error');
+    } finally {
+      setSlotsLoading(false);
     }
   }
 
@@ -303,7 +307,7 @@ function NewAppointmentForm({ onDone }: { onDone: () => void }) {
       {practitionerId && serviceId && (
         <div>
           <p className="text-xs font-medium text-ink/60 mb-2">Available times</p>
-          <SlotPicker slots={slots} selectedSlotId={selectedSlot?.slotId ?? null} onSelect={onSelectSlot} />
+          <SlotPicker slots={slots} selectedSlotId={selectedSlot?.slotId ?? null} onSelect={onSelectSlot} loading={slotsLoading} />
         </div>
       )}
 
@@ -339,17 +343,20 @@ function RescheduleForm({
   const [clinics, setClinics] = useState<ClinicResponse[]>([]);
   const [slots, setSlots] = useState<SlotResponse[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<SlotResponse | null>(null);
+  const [slotsLoading, setSlotsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
   useEffect(() => { listClinics().then(setClinics).catch(() => {}); }, []);
 
   useEffect(() => {
+    setSlotsLoading(true);
     const from = new Date().toISOString().slice(0, 10);
     const to = new Date(Date.now() + 14 * 86400_000).toISOString().slice(0, 10);
     getAvailability({ practitionerId: appointment.practitionerId, clinicId: appointment.clinicId, from, to })
       .then((res) => setSlots(res.slots))
-      .catch((err) => toast.show(err instanceof ApiError ? err.message : 'Could not load availability.', 'error'));
+      .catch((err) => toast.show(err instanceof ApiError ? err.message : 'Could not load availability.', 'error'))
+      .finally(() => setSlotsLoading(false));
   }, [appointment]);
 
   async function onSelectSlot(slot: SlotResponse) {
@@ -384,13 +391,13 @@ function RescheduleForm({
         <h2 className="text-sm font-medium text-ink mb-0.5 flex items-center gap-1.5">
           <CalendarClock size={15} className="text-teal" /> Reschedule appointment
         </h2>
-        <p className="text-xs text-ink/50">
+        <p className="text-xs text-ink/50 tabular-nums">
           Currently {new Date(appointment.scheduledStart).toLocaleString(undefined, { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
           {currentClinicName && ` at ${currentClinicName}`}
         </p>
       </div>
 
-      <SlotPicker slots={slots} selectedSlotId={selectedSlot?.slotId ?? null} onSelect={onSelectSlot} />
+      <SlotPicker slots={slots} selectedSlotId={selectedSlot?.slotId ?? null} onSelect={onSelectSlot} loading={slotsLoading} />
 
       <div className="flex gap-2">
         <button

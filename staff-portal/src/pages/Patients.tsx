@@ -6,6 +6,7 @@ import { ApiError } from '../api/client';
 import type { NotificationResponse, PatientResponse } from '../api/types';
 import { Field, SelectField } from '../components/Field';
 import { EmptyState } from '../components/EmptyState';
+import { Skeleton } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
 
 export default function Patients() {
@@ -14,15 +15,21 @@ export default function Patients() {
   const [showForm, setShowForm] = useState(false);
   const [historyFor, setHistoryFor] = useState<PatientResponse | null>(null);
   const [searched, setSearched] = useState(false);
+  // Fixed: without a loading flag, clicking Search gave no feedback at all until the results
+  // (or the "No matches" empty state) arrived — a real gap on a slow connection.
+  const [searching, setSearching] = useState(false);
   const toast = useToast();
 
   async function search(e?: FormEvent) {
     e?.preventDefault();
+    setSearching(true);
     try {
       setResults(await searchPatients(query));
       setSearched(true);
     } catch (err) {
       toast.show(err instanceof ApiError ? err.message : 'Search failed.', 'error');
+    } finally {
+      setSearching(false);
     }
   }
 
@@ -52,21 +59,26 @@ export default function Patients() {
               placeholder="Name, mobile number, or email…"
               className="w-full rounded-lg border border-line bg-panel pl-10 pr-24 py-2.5 text-sm focus-ring"
             />
-            <button type="submit" className="btn-press absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md bg-teal px-3.5 py-1.5 text-xs text-white font-medium hover:bg-teal-dark focus-ring">
-              Search
+            <button type="submit" disabled={searching} className="btn-press absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md bg-teal px-3.5 py-1.5 text-xs text-white font-medium hover:bg-teal-dark focus-ring disabled:opacity-50">
+              {searching ? 'Searching…' : 'Search'}
             </button>
           </form>
 
-          {!searched && <div className="panel"><EmptyState icon={Search} title="Search to find a patient" /></div>}
-          {searched && results.length === 0 && <div className="panel"><EmptyState icon={Users} title="No matches" /></div>}
+          {searching && (
+            <div className="panel p-4 space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-11" />)}
+            </div>
+          )}
+          {!searching && !searched && <div className="panel"><EmptyState icon={Search} title="Search to find a patient" /></div>}
+          {!searching && searched && results.length === 0 && <div className="panel"><EmptyState icon={Users} title="No matches" /></div>}
 
-          {results.length > 0 && (
+          {!searching && results.length > 0 && (
             <div className="panel divide-y divide-line/60">
               {results.map((p) => (
                 <div key={p.id} className="px-4 py-3 flex items-center justify-between">
                   <div>
                     <p className="font-medium text-ink">{p.firstName} {p.lastName}</p>
-                    <p className="text-xs text-ink/50">{p.mobileNumber ?? p.email ?? '—'} · DOB {p.birthDate}</p>
+                    <p className="text-xs text-ink/50 tabular-nums">{p.mobileNumber ?? p.email ?? '—'} · DOB {new Date(p.birthDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</p>
                   </div>
                   <button
                     onClick={() => setHistoryFor(p)}
@@ -104,7 +116,16 @@ function NotificationHistory({ patient, onBack }: { patient: PatientResponse; on
       <button onClick={onBack} className="text-sm text-teal hover:text-teal-dark focus-ring mb-4">← Back to search</button>
       <p className="text-sm text-ink/60 mb-4">Notification history for <span className="font-medium text-ink">{patient.firstName} {patient.lastName}</span></p>
 
-      {notifications === null && <p className="text-sm text-ink/40">Loading…</p>}
+      {notifications === null && (
+        <div className="panel divide-y divide-line/60">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="px-4 py-3 space-y-2">
+              <Skeleton className="h-3.5 w-1/3" />
+              <Skeleton className="h-3 w-2/3" />
+            </div>
+          ))}
+        </div>
+      )}
       {notifications && notifications.length === 0 && <div className="panel"><EmptyState icon={Bell} title="No notifications sent yet" /></div>}
 
       {notifications && notifications.length > 0 && (

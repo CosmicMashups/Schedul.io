@@ -47,13 +47,13 @@ export default function Reports() {
         </button>
       </form>
 
-      {loading && (
+      {loading && !summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-card" />)}
         </div>
       )}
 
-      {!loading && summary && (
+      {summary && (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <Metric label="Total appointments" value={summary.totalAppointments} />

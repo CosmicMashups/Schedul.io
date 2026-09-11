@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CalendarDays, CheckCircle2, PhoneCall, SkipForward, Stethoscope } from 'lucide-react';
+import { CalendarDays, CheckCircle2, Clock3, PhoneCall, SkipForward, Stethoscope } from 'lucide-react';
 import { getMyProfile } from '../api/practitioner';
 import { searchMyAppointments } from '../api/appointments';
 import { getPatient } from '../api/patients';
@@ -112,7 +112,8 @@ export default function Today() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-display text-2xl text-ink">{names.get(nowServing.patientId) ?? 'Patient'}</p>
-                <p className="font-mono text-sm text-ink/40 mt-0.5">{nowServing.ticketNumber}</p>
+                <p className="font-mono text-sm text-ink/40 mt-0.5 tabular-nums">{nowServing.ticketNumber}</p>
+                {nowServing.servingStartedAt && <ElapsedTime since={nowServing.servingStartedAt} />}
               </div>
               <button
                 onClick={() => run(() => completeTicket(nowServing.id), 'Visit completed.')}
@@ -129,9 +130,9 @@ export default function Today() {
             <p className="text-xs uppercase tracking-widest text-ink/40 mb-2">Up next</p>
             <div className="flex items-center justify-between">
               <div className="relative">
-                {upNext.status === 'WAITING' && <span className="pulse-ring absolute -inset-2 rounded-full text-teal" />}
+                {upNext.status === 'WAITING' && <span aria-hidden="true" className="pulse-ring absolute -inset-2 rounded-full text-teal" />}
                 <p className="font-display text-2xl text-ink relative">{names.get(upNext.patientId) ?? 'Patient'}</p>
-                <p className="font-mono text-sm text-ink/40 mt-0.5 relative">{upNext.ticketNumber}</p>
+                <p className="font-mono text-sm text-ink/40 mt-0.5 relative tabular-nums">{upNext.ticketNumber}</p>
               </div>
               {upNext.status === 'WAITING' ? (
                 <button
@@ -182,9 +183,9 @@ export default function Today() {
       ) : (
         <div className="panel divide-y divide-slate-line">
           {appointments.map((a) => (
-            <div key={a.id} className="px-4 py-3 flex items-center justify-between">
+            <div key={a.id} className="px-4 py-3 flex items-center justify-between transition-colors hover:bg-teal/5">
               <div className="flex items-center gap-3">
-                <span className="font-mono text-xs text-ink/40 w-14">
+                <span className="font-mono text-xs text-ink/40 w-14 tabular-nums">
                   {new Date(a.scheduledStart).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
                 </span>
                 <span className="text-sm text-ink">{names.get(a.patientId) ?? 'Patient'}</span>
@@ -195,5 +196,23 @@ export default function Today() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Live elapsed time since the current consultation started — updates every 15s. Gives the
+    doctor a sense of how long they've been with this patient at a glance, mid-shift. */
+function ElapsedTime({ since }: { since: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const minutes = Math.max(0, Math.floor((now - new Date(since).getTime()) / 60_000));
+  return (
+    <p className="flex items-center gap-1 text-xs text-ink/40 mt-1">
+      <Clock3 size={11} />
+      <span className="tabular-nums">{minutes} min</span>
+    </p>
   );
 }

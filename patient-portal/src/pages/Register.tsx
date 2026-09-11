@@ -95,7 +95,7 @@ export default function Register() {
             className="mt-0.5 focus-ring"
           />
           <span>
-            I consent to Demo Clinic collecting and processing my personal and health information
+            I consent to Schedul.io collecting and processing my personal and health information
             for the purpose of scheduling and delivering care, per the clinic's privacy notice.
           </span>
         </label>

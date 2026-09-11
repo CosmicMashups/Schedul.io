@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  CalendarClock, CheckCircle2, Clock, ListOrdered, TrendingDown, TrendingUp, Users, XCircle,
+  CalendarClock, CheckCircle2, Clock, LayoutGrid, ListOrdered, TrendingDown, TrendingUp, Users, XCircle,
 } from 'lucide-react';
 import { getReportSummary } from '../api/reporting';
 import { ApiError } from '../api/client';
@@ -31,11 +31,11 @@ export default function Dashboard() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-card" />)}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-card" />)}
         </div>
       ) : summary ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <StatCard icon={CalendarClock} label="Appointments" value={summary.totalAppointments} tone="teal" />
           <StatCard icon={CheckCircle2} label="Completed" value={summary.completedCount} tone="teal" />
           <StatCard icon={XCircle} label="Cancelled" value={summary.cancelledCount} tone="coral" />
@@ -44,16 +44,17 @@ export default function Dashboard() {
       ) : null}
 
       {summary && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           <RateCard label="Confirmation rate" value={summary.confirmationRatePct} good />
           <RateCard label="Cancellation rate" value={summary.cancellationRatePct} good={false} />
           <RateCard label="No-show rate" value={summary.noShowRatePct} good={false} />
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <QuickLink to="/queue" icon={ListOrdered} title="Doctor queue" desc="Call next, serve, and complete visits." />
         <QuickLink to="/check-in" icon={Users} title="Check-in" desc="Bring a confirmed patient into the queue." />
+        <QuickLink to="/calendar" icon={LayoutGrid} title="Calendar" desc="Week and month views across doctors." />
       </div>
     </div>
   );

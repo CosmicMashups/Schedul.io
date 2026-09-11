@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { CalendarCheck, ClipboardList, MapPin, Stethoscope } from 'lucide-react';
+import { CalendarCheck, ClipboardList, MapPin, Stethoscope, UserX } from 'lucide-react';
 import { getDoctor, listServices, listAppointmentTypes, getAvailability, holdSlot, releaseSlot, bookAppointment } from '../api/booking';
 import { ApiError } from '../api/client';
 import type { PractitionerResponse, ServiceResponse, SlotResponse } from '../api/types';
 import { SelectField } from '../components/Field';
 import { SlotPicker } from '../components/SlotPicker';
 import { CardSkeleton } from '../components/Skeleton';
+import { EmptyState } from '../components/EmptyState';
 import { useToast } from '../components/Toast';
 import { Spinner } from '../components/Spinner';
 
@@ -23,6 +24,7 @@ export default function DoctorProfile() {
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
 
   // Fixed gap: previously resolved clinicId by string-matching a clinic *name* returned on
   // the practitioner, since PractitionerResponse only exposed names. It now exposes
@@ -54,6 +56,7 @@ export default function DoctorProfile() {
     if (!id) return;
     setSlots([]);
     setSelectedSlot(null);
+    setAvailabilityLoading(true);
     const from = new Date().toISOString().slice(0, 10);
     const to = new Date(Date.now() + 14 * 86400_000).toISOString().slice(0, 10);
     try {
@@ -61,6 +64,8 @@ export default function DoctorProfile() {
       setSlots(res.slots);
     } catch (err) {
       toast.show(err instanceof ApiError ? err.message : 'Could not load availability.', 'error');
+    } finally {
+      setAvailabilityLoading(false);
     }
   }
 
@@ -109,7 +114,13 @@ export default function DoctorProfile() {
   if (loading) {
     return <div className="space-y-4 animate-page"><CardSkeleton /><CardSkeleton /></div>;
   }
-  if (!doctor) return <p className="text-sm text-coral">Doctor not found.</p>;
+  if (!doctor) {
+    return (
+      <div className="animate-page">
+        <EmptyState icon={UserX} title="Doctor not found" description="This profile may have been removed. Try searching again." />
+      </div>
+    );
+  }
 
   return (
     <div className="animate-page">
@@ -144,7 +155,7 @@ export default function DoctorProfile() {
           <h2 className="text-xs font-medium text-ink/60 uppercase tracking-wide mb-3 flex items-center gap-1.5">
             <CalendarCheck size={14} /> Available times
           </h2>
-          <SlotPicker slots={slots} selectedSlotId={selectedSlot?.slotId ?? null} onSelect={onSelectSlot} />
+          <SlotPicker slots={slots} selectedSlotId={selectedSlot?.slotId ?? null} onSelect={onSelectSlot} loading={availabilityLoading} />
         </div>
       )}
 

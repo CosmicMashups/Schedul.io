@@ -5,6 +5,7 @@ import { ApiError } from '../api/client';
 import type { ClinicResponse, PractitionerResponse, SpecialtyResponse } from '../api/types';
 import { Field } from '../components/Field';
 import { EmptyState } from '../components/EmptyState';
+import { Skeleton } from '../components/Skeleton';
 import { Spinner } from '../components/Spinner';
 import { useToast } from '../components/Toast';
 
@@ -12,11 +13,15 @@ export default function Practitioners() {
   const [doctors, setDoctors] = useState<PractitionerResponse[]>([]);
   const [clinics, setClinics] = useState<ClinicResponse[]>([]);
   const [specialties, setSpecialties] = useState<SpecialtyResponse[]>([]);
+  // Fixed: without a loading flag, the empty state briefly flashed "No doctors yet" on every
+  // load, before the initial fetch had a chance to resolve.
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [invitingFor, setInvitingFor] = useState<PractitionerResponse | null>(null);
   const toast = useToast();
 
   async function load() {
+    setLoading(true);
     try {
       const [docs, cls, specs] = await Promise.all([searchPractitioners(), listClinics(), listSpecialties()]);
       setDoctors(docs);
@@ -24,6 +29,8 @@ export default function Practitioners() {
       setSpecialties(specs);
     } catch (err) {
       toast.show(err instanceof ApiError ? err.message : 'Could not load doctors.', 'error');
+    } finally {
+      setLoading(false);
     }
   }
   useEffect(() => { load(); }, []);
@@ -48,6 +55,10 @@ export default function Practitioners() {
           onDone={() => { setInvitingFor(null); toast.show('Doctor Portal access granted.'); }}
           onCancel={() => setInvitingFor(null)}
         />
+      ) : loading && doctors.length === 0 ? (
+        <div className="panel p-4 space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-11" />)}
+        </div>
       ) : doctors.length === 0 ? (
         <div className="panel"><EmptyState icon={Stethoscope} title="No doctors yet" /></div>
       ) : (

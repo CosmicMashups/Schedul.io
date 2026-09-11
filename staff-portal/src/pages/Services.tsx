@@ -5,21 +5,28 @@ import { ApiError } from '../api/client';
 import type { ClinicResponse, ServiceResponse } from '../api/types';
 import { Field, SelectField } from '../components/Field';
 import { EmptyState } from '../components/EmptyState';
+import { Skeleton } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
 
 export default function Services() {
   const [services, setServices] = useState<ServiceResponse[]>([]);
   const [clinics, setClinics] = useState<ClinicResponse[]>([]);
+  // Fixed: without a loading flag, the empty state briefly flashed "No services yet" on every
+  // load, before the initial fetch had a chance to resolve.
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const toast = useToast();
 
   async function load() {
+    setLoading(true);
     try {
       const [svc, cls] = await Promise.all([listServices(), listClinics()]);
       setServices(svc);
       setClinics(cls);
     } catch (err) {
       toast.show(err instanceof ApiError ? err.message : 'Could not load services.', 'error');
+    } finally {
+      setLoading(false);
     }
   }
   useEffect(() => { load(); }, []);
@@ -38,6 +45,10 @@ export default function Services() {
 
       {showForm ? (
         <ServiceForm clinics={clinics} onDone={() => { setShowForm(false); load(); toast.show('Service created.'); }} />
+      ) : loading && services.length === 0 ? (
+        <div className="panel p-4 space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-11" />)}
+        </div>
       ) : services.length === 0 ? (
         <div className="panel"><EmptyState icon={ClipboardList} title="No services yet" /></div>
       ) : (
@@ -46,9 +57,9 @@ export default function Services() {
             <div key={s.id} className="px-4 py-3 flex items-center justify-between">
               <div>
                 <p className="font-medium text-ink">{s.name}</p>
-                <p className="text-xs text-ink/50 mt-0.5">{s.durationMinutes} min · {s.consultationMode} · {s.clinics.join(', ')}</p>
+                <p className="text-xs text-ink/50 mt-0.5 tabular-nums">{s.durationMinutes} min · {s.consultationMode} · {s.clinics.join(', ')}</p>
               </div>
-              {s.price != null && <span className="font-mono text-sm text-ink/60">₱{s.price.toLocaleString()}</span>}
+              {s.price != null && <span className="font-mono text-sm text-ink/60 tabular-nums">₱{s.price.toLocaleString()}</span>}
             </div>
           ))}
         </div>

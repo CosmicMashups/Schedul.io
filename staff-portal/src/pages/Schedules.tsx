@@ -5,6 +5,7 @@ import { ApiError } from '../api/client';
 import type { ClinicResponse, PractitionerResponse, ScheduleRuleResponse } from '../api/types';
 import { Field, SelectField } from '../components/Field';
 import { EmptyState } from '../components/EmptyState';
+import { Skeleton } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
 import { CalendarRange, PlusCircle } from 'lucide-react';
 
@@ -15,6 +16,9 @@ export default function Schedules() {
   const [clinics, setClinics] = useState<ClinicResponse[]>([]);
   const [practitionerId, setPractitionerId] = useState('');
   const [rules, setRules] = useState<ScheduleRuleResponse[]>([]);
+  // Fixed: without a loading flag, the empty state briefly flashed "No recurring availability
+  // set yet" on every doctor switch, before that doctor's rules had a chance to load.
+  const [rulesLoading, setRulesLoading] = useState(true);
   const toast = useToast();
   const [showForm, setShowForm] = useState(false);
 
@@ -27,7 +31,12 @@ export default function Schedules() {
   }, []);
 
   useEffect(() => {
-    if (practitionerId) listScheduleRules(practitionerId).then(setRules).catch(() => {});
+    if (!practitionerId) return;
+    setRulesLoading(true);
+    listScheduleRules(practitionerId)
+      .then(setRules)
+      .catch(() => {})
+      .finally(() => setRulesLoading(false));
   }, [practitionerId]);
 
   return (
@@ -49,15 +58,19 @@ export default function Schedules() {
         </select>
       </label>
 
-      {rules.length === 0 ? (
+      {rulesLoading ? (
+        <div className="panel p-4 space-y-3 mb-6">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
+        </div>
+      ) : rules.length === 0 ? (
         <div className="panel mb-6"><EmptyState icon={CalendarRange} title="No recurring availability set yet" /></div>
       ) : (
         <div className="panel divide-y divide-line/60 mb-6">
           {rules.map((r) => (
             <div key={r.id} className="px-4 py-3 flex items-center justify-between text-sm">
               <span className="font-medium text-ink">{r.dayOfWeek}</span>
-              <span className="text-ink/60">{r.startTime}–{r.endTime}</span>
-              <span className="font-mono text-xs text-ink/40">{r.slotDurationMinutes}min slots</span>
+              <span className="text-ink/60 tabular-nums">{r.startTime}–{r.endTime}</span>
+              <span className="font-mono text-xs text-ink/40 tabular-nums">{r.slotDurationMinutes}min slots</span>
             </div>
           ))}
         </div>

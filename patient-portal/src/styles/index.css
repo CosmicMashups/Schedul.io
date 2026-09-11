@@ -1,3 +1,4 @@
+@import '../../../shared/design-tokens/motion.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -27,8 +28,13 @@ body {
   transform: translateY(-50%);
 }
 
-.pass-stub::before { left: -10px; }
-.pass-stub::after { right: -10px; }
+.pass-stub::before { left: -10px; animation: perforation-pop 0.3s 0.1s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.pass-stub::after { right: -10px; animation: perforation-pop 0.3s 0.16s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@keyframes perforation-pop {
+  from { opacity: 0; transform: translateY(-50%) scale(0.5); }
+  to { opacity: 1; transform: translateY(-50%) scale(1); }
+}
 
 .pass-perforation {
   border-left: 2px dashed theme('colors.line');
@@ -38,86 +44,9 @@ body {
   @apply outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-mist;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-}
-
-/* ===== Micro-animations ===== */
-@keyframes fade-slide-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes toast-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes pulse-soft {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
-}
-@keyframes scale-in {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.animate-page { animation: fade-slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.animate-toast-in { animation: toast-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.animate-scale-in { animation: scale-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
 .skeleton {
-  @apply rounded-md relative overflow-hidden bg-ink/[0.06];
+  @apply bg-ink/[0.06];
 }
 .skeleton::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
-  animation: shimmer 1.6s ease-in-out infinite;
 }
-@keyframes shimmer {
-  100% { transform: translateX(100%); }
-}
-
-.card-interactive {
-  @apply transition-all duration-200 ease-out;
-}
-.card-interactive:hover {
-  @apply -translate-y-0.5 shadow-md;
-}
-
-.btn-press {
-  @apply transition-transform duration-150 active:scale-[0.97];
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-.animate-spin-fast { animation: spin 0.6s linear infinite; }
-
-@keyframes ring-pulse {
-  0% { transform: scale(0.9); opacity: 0.5; }
-  100% { transform: scale(1.8); opacity: 0; }
-}
-.pulse-ring::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  background: currentColor;
-  opacity: 0.25;
-  animation: ring-pulse 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-}
-
-@keyframes toast-progress {
-  from { transform: scaleX(1); }
-  to { transform: scaleX(0); }
-}
-.toast-progress {
-  animation: toast-progress 4.5s linear forwards;
-  transform-origin: left;
-}
-
-@keyframes icon-nudge {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(2px); }
-}
-a:hover .icon-nudge, button:hover .icon-nudge { animation: icon-nudge 0.5s ease-in-out; }

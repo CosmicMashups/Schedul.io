@@ -60,7 +60,7 @@ export default function MyAppointments() {
             className="animate-scale-in card-interactive flex items-center justify-between gap-3 rounded-card border border-line bg-paper p-4 hover:border-teal focus-ring"
           >
             <div className="min-w-0">
-              <p className="font-medium text-ink">
+              <p className="font-medium text-ink tabular-nums">
                 {new Date(a.scheduledStart).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                 {' · '}
                 {new Date(a.scheduledStart).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}

@@ -12,12 +12,15 @@ const DAY_START_HOUR = 7;
 const DAY_END_HOUR = 19;
 const HOUR_HEIGHT_PX = 52;
 
+// Six distinct appointment states now get six visually distinct treatments — previously
+// CONFIRMED/CHECKED_IN/IN_QUEUE all shared the identical class, making them indistinguishable
+// on the calendar grid.
 const STATUS_COLOR: Record<string, string> = {
   PENDING_CONFIRMATION: 'bg-amber/20 border-amber text-amber',
-  CONFIRMED: 'bg-teal/15 border-teal text-teal-dark',
-  CHECKED_IN: 'bg-teal/15 border-teal text-teal-dark',
-  IN_QUEUE: 'bg-teal/15 border-teal text-teal-dark',
-  IN_CONSULTATION: 'bg-teal/25 border-teal text-teal-dark',
+  CONFIRMED: 'bg-teal/10 border-teal/50 text-teal-dark',
+  CHECKED_IN: 'bg-teal/20 border-teal text-teal-dark',
+  IN_QUEUE: 'bg-teal/20 border-teal border-dashed text-teal-dark font-semibold',
+  IN_CONSULTATION: 'bg-teal border-teal-dark text-white font-semibold',
   COMPLETED: 'bg-ink/5 border-line text-ink/50',
   CANCELLED: 'bg-coral/10 border-coral text-coral line-through',
   NO_SHOW: 'bg-coral/10 border-coral text-coral',
@@ -89,8 +92,13 @@ export default function Calendar() {
     setAnchor((prev) => (view === 'week' ? addDays(prev, 7 * direction) : new Date(prev.getFullYear(), prev.getMonth() + direction, 1)));
   }
 
+  function onAppointmentSelect(a: AppointmentResponse) {
+    const time = new Date(a.scheduledStart).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    toast.show(`${time} · ${a.reason ?? a.status.replace(/_/g, ' ').toLowerCase()}`);
+  }
+
   const rangeLabel = view === 'week'
-    ? `${rangeStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} \u2013 ${addDays(rangeStart, 6).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+    ? `${rangeStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${addDays(rangeStart, 6).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
     : anchor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
   return (
@@ -123,16 +131,16 @@ export default function Calendar() {
           <button onClick={() => navigate(1)} className="btn-press flex h-8 w-8 items-center justify-center rounded-lg border border-line hover:border-teal focus-ring"><ChevronRight size={15} /></button>
           <button onClick={() => setAnchor(new Date())} className="btn-press ml-1 rounded-lg border border-line px-3 py-1.5 text-xs font-medium hover:border-teal focus-ring">Today</button>
         </div>
-        <p className="text-sm font-medium text-ink">{rangeLabel}</p>
-        <div className="flex items-center gap-1.5 text-xs text-ink/40">
+        <p className="text-sm font-medium text-ink tabular-nums">{rangeLabel}</p>
+        <div className="flex items-center gap-1.5 text-xs text-ink/40 tabular-nums">
           <List size={13} /> {appointments.length} appointment{appointments.length === 1 ? '' : 's'}
         </div>
       </div>
 
       {loading ? (
-        <Skeleton className="h-96 rounded-card" />
+        view === 'week' ? <WeekGridSkeleton /> : <MonthGridSkeleton />
       ) : view === 'week' ? (
-        <WeekGrid weekStart={rangeStart} appointments={appointments} />
+        <WeekGrid weekStart={rangeStart} appointments={appointments} onSelect={onAppointmentSelect} />
       ) : (
         <MonthGrid gridStart={rangeStart} monthAnchor={anchor} appointments={appointments} onDayClick={(d) => { setAnchor(d); setView('week'); }} />
       )}
@@ -140,7 +148,75 @@ export default function Calendar() {
   );
 }
 
-function WeekGrid({ weekStart, appointments }: { weekStart: Date; appointments: AppointmentResponse[] }) {
+function WeekGridSkeleton() {
+  return (
+    <div className="panel overflow-hidden">
+      <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-line">
+        <div />
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} className="px-2 py-2.5 border-l border-line space-y-1.5">
+            <Skeleton className="h-2.5 w-6 mx-auto" />
+            <Skeleton className="h-4 w-4 mx-auto rounded-full" />
+          </div>
+        ))}
+      </div>
+      <div className="p-3 space-y-2.5">
+        {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-8" />)}
+      </div>
+    </div>
+  );
+}
+
+function MonthGridSkeleton() {
+  return (
+    <div className="panel overflow-hidden">
+      <div className="grid grid-cols-7 border-b border-line">
+        {DAY_NAMES.map((d) => (
+          <div key={d} className="px-2 py-2 text-center text-[10px] uppercase tracking-wide text-ink/40 border-l border-line first:border-l-0">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7">
+        {Array.from({ length: 35 }).map((_, i) => (
+          <div key={i} className="min-h-24 p-1.5 border-l border-t border-line first:border-l-0">
+            <Skeleton className="h-4 w-4 rounded-full mb-1.5" />
+            {i % 3 === 0 && <Skeleton className="h-3 w-full" />}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Current-time indicator: a live horizontal line + dot across today's column, so the grid
+    reads as a real-time ops view rather than a static schedule printout. Absent when today
+    falls outside the visible week or outside clinic hours. */
+function NowLine({ weekStart }: { weekStart: Date }) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const dayIndex = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).findIndex((d) => sameDay(d, now));
+  const hour = now.getHours() + now.getMinutes() / 60;
+  if (dayIndex === -1 || hour < DAY_START_HOUR || hour > DAY_END_HOUR) return null;
+
+  const top = (hour - DAY_START_HOUR) * HOUR_HEIGHT_PX;
+  const leftPct = (dayIndex / 7) * 100;
+  const widthPct = 100 / 7;
+
+  return (
+    <div
+      className="absolute z-20 flex items-center pointer-events-none"
+      style={{ top, left: `${leftPct}%`, width: `${widthPct}%` }}
+    >
+      <span className="h-2 w-2 rounded-full bg-coral ring-4 ring-coral/20 -ml-1" />
+      <span className="h-px flex-1 bg-coral/70" />
+    </div>
+  );
+}
+
+function WeekGrid({ weekStart, appointments, onSelect }: { weekStart: Date; appointments: AppointmentResponse[]; onSelect: (a: AppointmentResponse) => void }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const hours = Array.from({ length: DAY_END_HOUR - DAY_START_HOUR }, (_, i) => DAY_START_HOUR + i);
 
@@ -151,7 +227,7 @@ function WeekGrid({ weekStart, appointments }: { weekStart: Date; appointments: 
         {days.map((d) => (
           <div key={d.toISOString()} className={`px-2 py-2.5 text-center border-l border-line ${sameDay(d, new Date()) ? 'bg-teal/5' : ''}`}>
             <p className="text-[10px] uppercase tracking-wide text-ink/40">{DAY_NAMES[d.getDay()]}</p>
-            <p className={`text-sm font-medium ${sameDay(d, new Date()) ? 'text-teal' : 'text-ink'}`}>{d.getDate()}</p>
+            <p className={`text-sm font-medium tabular-nums ${sameDay(d, new Date()) ? 'text-teal' : 'text-ink'}`}>{d.getDate()}</p>
           </div>
         ))}
       </div>
@@ -160,10 +236,12 @@ function WeekGrid({ weekStart, appointments }: { weekStart: Date; appointments: 
         <div>
           {hours.map((h) => (
             <div key={h} style={{ height: HOUR_HEIGHT_PX }} className="text-right pr-2 -translate-y-2">
-              <span className="text-[10px] text-ink/30 font-mono">{h % 12 === 0 ? 12 : h % 12}{h < 12 ? 'am' : 'pm'}</span>
+              <span className="text-[10px] text-ink/30 font-mono tabular-nums">{h % 12 === 0 ? 12 : h % 12}{h < 12 ? 'am' : 'pm'}</span>
             </div>
           ))}
         </div>
+
+        <NowLine weekStart={weekStart} />
 
         {days.map((day) => {
           const dayAppointments = appointments.filter((a) => sameDay(new Date(a.scheduledStart), day));
@@ -178,16 +256,19 @@ function WeekGrid({ weekStart, appointments }: { weekStart: Date; appointments: 
                 const top = (startOffsetMin / 60) * HOUR_HEIGHT_PX;
                 const height = (durationMin / 60) * HOUR_HEIGHT_PX;
                 const colorClass = STATUS_COLOR[a.status] ?? 'bg-ink/5 border-line text-ink/60';
+                const label = `${start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })} — ${a.reason ?? a.status}`;
                 return (
-                  <div
+                  <button
                     key={a.id}
-                    title={`${start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })} \u2014 ${a.reason ?? a.status}`}
-                    className={`absolute left-0.5 right-0.5 rounded-md border-l-2 px-1.5 py-1 text-[10px] leading-tight overflow-hidden cursor-default transition-transform hover:scale-[1.02] hover:z-10 ${colorClass}`}
+                    onClick={() => onSelect(a)}
+                    title={label}
+                    aria-label={label}
+                    className={`absolute left-0.5 right-0.5 text-left rounded-md border-l-2 px-1.5 py-1 text-[10px] leading-tight overflow-hidden transition-transform hover:scale-[1.02] hover:z-10 focus-ring ${colorClass}`}
                     style={{ top, height: Math.max(height, 18) }}
                   >
-                    <p className="font-medium truncate">{start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</p>
+                    <p className="font-medium truncate tabular-nums">{start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</p>
                     {height > 30 && <p className="truncate opacity-80">{a.reason ?? a.status}</p>}
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -222,14 +303,14 @@ function MonthGrid({
               onClick={() => onDayClick(day)}
               className={`text-left min-h-24 p-1.5 border-l border-t border-line first:border-l-0 focus-ring transition-colors hover:bg-paper ${isCurrentMonth ? '' : 'bg-paper/50'}`}
             >
-              <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs mb-1 ${
+              <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs tabular-nums mb-1 ${
                 isToday ? 'bg-teal text-white font-medium' : isCurrentMonth ? 'text-ink' : 'text-ink/30'
               }`}>
                 {day.getDate()}
               </span>
               <div className="space-y-0.5">
                 {dayAppointments.slice(0, 3).map((a) => (
-                  <div key={a.id} className={`truncate rounded px-1 py-0.5 text-[10px] border-l-2 ${STATUS_COLOR[a.status] ?? 'bg-ink/5 border-line text-ink/60'}`}>
+                  <div key={a.id} className={`truncate rounded px-1 py-0.5 text-[10px] border-l-2 tabular-nums ${STATUS_COLOR[a.status] ?? 'bg-ink/5 border-line text-ink/60'}`}>
                     {new Date(a.scheduledStart).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
                   </div>
                 ))}

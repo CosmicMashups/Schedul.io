@@ -57,3 +57,11 @@ desktop.ini
 coverage/
 .nyc_output/
 *.tsbuildinfo
+
+# ==========================================================================
+# Claude Code local tooling — skills installed via `npx skills add` and the
+# session's own skill cache. Machine-local agent config, not project source.
+# ==========================================================================
+.agents/
+.claude/
+skills-lock.json

@@ -87,7 +87,7 @@ export default function CheckIn() {
               <p className="text-sm text-ink">Sent to the doctor queue</p>
             </div>
           </div>
-          <p className="font-mono text-2xl text-teal">{result.ticketNumber}</p>
+          <p className="font-mono text-2xl text-teal tabular-nums">{result.ticketNumber}</p>
         </div>
       )}
     </div>

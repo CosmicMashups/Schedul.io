@@ -1,9 +1,20 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, CalendarClock, UserCheck, ListOrdered, Users, Stethoscope,
-  ClipboardList, CalendarRange, BarChart3, LogOut, Building2, LayoutGrid,
+  ClipboardList, CalendarRange, BarChart3, LogOut, LayoutGrid,
 } from 'lucide-react';
 import { clearSession } from '../api/client';
+
+// Brand mark: a calendar with a pulse cross — replaces the placeholder Building2-as-logo.
+function BrandMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="5" width="18" height="16" rx="4" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 3v4M16 3v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 10.5v7M8.5 14h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 const LINKS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -24,11 +35,11 @@ export function Sidebar() {
     <aside className="w-56 shrink-0 border-r border-line bg-panel h-screen sticky top-0 flex flex-col">
       <div className="px-5 py-5 border-b border-line flex items-center gap-2.5">
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal text-white">
-          <Building2 size={16} />
+          <BrandMark size={16} />
         </span>
         <div>
           <p className="text-[10px] font-mono uppercase tracking-widest text-teal leading-none mb-1">Staff console</p>
-          <p className="font-medium text-ink text-sm leading-none">Demo Clinic</p>
+          <p className="font-medium text-ink text-sm leading-none">Schedul.io</p>
         </div>
       </div>
       <nav className="flex-1 py-3">

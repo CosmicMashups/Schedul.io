@@ -76,7 +76,7 @@ export default function DoctorSearch() {
                   {d.credentials && <span className="text-ink/40 font-normal text-sm"> · {d.credentials}</span>}
                 </h2>
                 {d.defaultConsultationFee != null && (
-                  <span className="font-mono text-xs text-ink/50 shrink-0">₱{d.defaultConsultationFee.toLocaleString()}</span>
+                  <span className="font-mono text-xs text-ink/50 shrink-0 tabular-nums">₱{d.defaultConsultationFee.toLocaleString()}</span>
                 )}
               </div>
               <p className="text-sm text-ink/60 mt-0.5 truncate">

@@ -37,21 +37,21 @@ export default function BookingConfirmation() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-xs text-ink/50">Appointment</p>
-              <p className="font-mono text-sm text-ink">{confirmationCode}</p>
+              <p className="font-mono text-sm text-ink tabular-nums">{confirmationCode}</p>
             </div>
             <StatusPill status={appointment.status} />
           </div>
           <p className="font-display text-xl text-ink mb-1">
             {start.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
-          <p className="text-ink/60">
+          <p className="text-ink/60 tabular-nums">
             {start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
           </p>
           {appointment.reason && <p className="text-sm text-ink/50 mt-3 pt-3 border-t border-line">{appointment.reason}</p>}
         </div>
         <div className="pass-perforation px-5 py-3 bg-mist/50 flex justify-between items-center">
-          <span className="text-xs text-ink/50">Demo Clinic</span>
-          <span className="font-mono text-xs text-ink/40">#{confirmationCode}</span>
+          <span className="text-xs text-ink/50">Schedul.io</span>
+          <span className="font-mono text-xs text-ink/40 tabular-nums">#{confirmationCode}</span>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { CalendarClock } from 'lucide-react';
 import type { SlotResponse } from '../api/types';
 import { EmptyState } from './EmptyState';
+import { Skeleton } from './Skeleton';
 
 function formatDay(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
@@ -10,8 +11,19 @@ function formatTime(iso: string) {
 }
 
 export function SlotPicker({
-  slots, selectedSlotId, onSelect,
-}: { slots: SlotResponse[]; selectedSlotId: string | null; onSelect: (slot: SlotResponse) => void }) {
+  slots, selectedSlotId, onSelect, loading = false,
+}: { slots: SlotResponse[]; selectedSlotId: string | null; onSelect: (slot: SlotResponse) => void; loading?: boolean }) {
+  // Fixed: every caller fetches availability asynchronously and starts from an empty slots
+  // array, so without a `loading` prop this flashed "No open slots in this range" for a moment
+  // on every doctor/service/date change, before the real slots arrived.
+  if (loading) {
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-7 w-14 rounded-md" />)}
+      </div>
+    );
+  }
+
   if (slots.length === 0) {
     return <EmptyState icon={CalendarClock} title="No open slots in this range" description="Try a different doctor or date range." />;
   }
@@ -34,7 +46,7 @@ export function SlotPicker({
                 key={slot.slotId}
                 type="button"
                 onClick={() => onSelect(slot)}
-                className={`btn-press rounded-md border px-2.5 py-1.5 text-xs font-mono focus-ring transition-colors ${
+                className={`btn-press rounded-md border px-2.5 py-1.5 text-xs font-mono tabular-nums focus-ring transition-colors ${
                   selectedSlotId === slot.slotId ? 'border-teal bg-teal text-white' : 'border-line bg-panel text-ink hover:border-teal'
                 }`}
               >

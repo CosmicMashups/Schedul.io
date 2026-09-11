@@ -1,0 +1,92 @@
+/**
+ * Shared animation vocabulary for all three portals. Previously each portal's styles/index.css
+ * defined a near-identical but independently-typed copy of these keyframes/utilities (and two of
+ * the three were each missing a couple of the others' additions — icon-nudge/pulse-soft lived
+ * only in patient-portal, count-pop/row-flash only in staff-portal). Importing this file is what
+ * keeps all three in sync going forward.
+ *
+ * NOT included here (stays portal-local, deliberately): `body` background/text, `.focus-ring`
+ * (its ring-offset color is background-specific), `.panel`, `.skeleton`'s background-color (light
+ * apps use a dark tint, doctor-portal's dark app uses a light tint), and each portal's signature
+ * element (`.pass-stub`, `.now-serving`, `.data-table`).
+ */
+
+@keyframes fade-slide-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@keyframes count-pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.45; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+@keyframes icon-nudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(2px); }
+}
+
+.animate-page { animation: fade-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-scale-in { animation: scale-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-toast-in { animation: toast-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-count-pop { animation: count-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.animate-spin-fast { animation: spin 0.6s linear infinite; }
+.row-flash { animation: pulse-soft 0.6s ease-out 1; }
+
+.toast-progress {
+  animation: toast-progress 4.5s linear forwards;
+  transform-origin: left;
+}
+
+.pulse-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.3;
+  animation: pulse-ring 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.skeleton {
+  @apply rounded-md relative overflow-hidden;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.card-interactive { @apply transition-all duration-200 ease-out; }
+.card-interactive:hover { @apply -translate-y-0.5 shadow-md; }
+
+.btn-press { @apply transition-transform duration-150 active:scale-[0.97]; }
+
+a:hover .icon-nudge, button:hover .icon-nudge { animation: icon-nudge 0.5s ease-in-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
