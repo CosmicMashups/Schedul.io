@@ -1,0 +1,5 @@
+#!/bin/sh
+# Strips any AI co-author trailer that might get added to a commit message, regardless of
+# which tool/session wrote it. See CLAUDE.md for why.
+sed -i.bak '/^Co-Authored-By:.*\(claude\|anthropic\|copilot\|chatgpt\|gpt-\|gemini\|cursor\)/Id' "$1"
+rm -f "$1.bak"
