@@ -107,6 +107,50 @@ clinics depend on this, even though it's the more expensive option at low/spiky 
 4. Local dev is unaffected — `DB_SSL_PARAMS` defaults to empty, so `docker compose up -d`
    against local Postgres still works with no SSL params appended.
 
+## Deploying to Render
+
+`Dockerfile` (multi-stage: `maven:3.9-eclipse-temurin-25` build → `eclipse-temurin:25-jre`
+runtime) is what Render builds from — no Maven wrapper is checked in, so the build stage uses
+an image with Maven preinstalled rather than `./mvnw`.
+
+1. Render → **New +** → **Web Service** → connect this repo, **Root Directory**: `backend`,
+   **Runtime**: Docker (auto-detected), **Health Check Path**: `/actuator/health`.
+2. Env vars (Environment tab) — the six Supabase ones from the section above, plus:
+
+   | Env var | Value |
+   |---|---|
+   | `REDIS_HOST` / `REDIS_PORT` / `SPRING_DATA_REDIS_PASSWORD` | from a Render Key Value instance's Connection info |
+   | `JWT_SECRET` | a random string **at least 32 characters long** — see gotcha below |
+
+   `KAFKA_BOOTSTRAP` can stay unset: nothing in the codebase calls `KafkaTemplate` or
+   `@KafkaListener` yet, so the unused auto-configured beans don't block startup without a
+   broker. Likewise Redis is on the classpath but unused by any code path yet — its only
+   effect right now is that `/actuator/health` reports `DOWN` if it's not reachable, even
+   though every real endpoint works fine regardless.
+3. `PORT` doesn't need setting — Render injects it, and the Dockerfile's entrypoint forwards
+   it into `-Dserver.port` automatically.
+
+### Gotchas actually hit deploying this
+
+- **`DB_HOST` must be a bare hostname, no `https://` prefix.** The datasource URL is built as
+  `jdbc:postgresql://${DB_HOST}:...` — pasting a full URL (e.g. from Supabase's project
+  overview page rather than its Connection info page) produces a doubly-prefixed, unparseable
+  JDBC URL and the driver fails immediately with "claims to not accept jdbcUrl."
+- **Use Supabase's Session pooler, not Direct connection or Transaction pooler** — see the
+  Supabase section above for why (IPv6-only reachability vs. broken prepared statements).
+- **Flyway can silently skip `V1` on a hosted database.** `baseline-on-migrate: true` treats a
+  non-empty-looking schema (which a fresh Supabase `postgres` database can register as, even
+  with no application tables yet) as "already has unmanaged content," and baselines at
+  `baselineVersion` (default `1`) instead of actually running migration `V1`. The symptom is
+  `V2` failing because tables `V1` was supposed to create don't exist. Fixed here by setting
+  `spring.flyway.baseline-version: 0`, so baselining (if it triggers) always sits below every
+  real migration. If you hit this against a database that already has a bad baseline row,
+  `DROP TABLE public.flyway_schema_history;` and redeploy.
+- **JWT signing key must be ≥256 bits.** `JwtService` calls `secret.getBytes()` directly (raw
+  UTF-8 byte length, not a base64-decoded length), so a short human-typed `JWT_SECRET` value
+  fails at startup with `WeakKeyException`. Use `openssl rand -hex 32` (64 characters = 512
+  bits) and paste the whole output as the env var value.
+
 ## What's deliberately NOT here yet
 
 A real SMS/email gateway integration, a reminder scheduler (7-day/24-hour/2-hour, section 30),

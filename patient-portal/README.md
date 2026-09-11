@@ -42,6 +42,21 @@ cp .env.example .env
 npm run dev
 ```
 
+Fill in `VITE_DEFAULT_TENANT_ID` in `.env` (see the comment in `.env.example`) — the doctor
+directory is browsable before login, so there's no session yet to carry `X-Tenant-Id`; this
+fills that gap for a single-tenant deployment.
+
+## Deploying (Vercel)
+
+`vercel.json` sets the Vite framework preset and a catch-all rewrite to `index.html` (React
+Router needs this so a refreshed/deep-linked route doesn't 404). In the Vercel project:
+Root Directory → `patient-portal`; env vars → `VITE_API_BASE_URL` (the backend's URL) and
+`VITE_DEFAULT_TENANT_ID`.
+
+`src/vite-env.d.ts` (`/// <reference types="vite/client" />`) has to exist for `tsc -b` to
+know `import.meta.env` is valid — `vite dev` doesn't typecheck strictly enough to catch its
+absence locally, but Vercel's build (`tsc -b && vite build`) does, and fails without it.
+
 ## Additional micro-interactions (final polish pass)
 - Shimmer-sweep skeleton loaders (replacing the earlier flat pulse) — `.skeleton` in `styles/index.css`.
 - Button spinners (`components/Spinner.tsx`, lucide's `Loader2`) on primary CTAs during in-flight requests, replacing static "Saving…" text with a spinning icon + text.

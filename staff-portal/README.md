@@ -68,6 +68,16 @@ cp .env.example .env
 npm run dev
 ```
 
+## Deploying (Vercel)
+
+`vercel.json` sets the Vite framework preset and a catch-all rewrite to `index.html` (needed
+for React Router's client-side routes to survive a refresh/deep link). Root Directory →
+`staff-portal`; env var → `VITE_API_BASE_URL` pointing at the backend.
+
+`src/vite-env.d.ts` (`/// <reference types="vite/client" />`) must exist for `tsc -b` to
+recognize `import.meta.env` — missing it builds fine under `vite dev` but fails Vercel's
+`tsc -b && vite build` step.
+
 ## Additional micro-interactions (final polish pass)
 - Shimmer-sweep skeleton loaders (replacing the earlier flat pulse) — `.skeleton` in `styles/index.css`.
 - Button spinners (`components/Spinner.tsx`, lucide's `Loader2`) on primary CTAs during in-flight requests, replacing static "Saving…" text with a spinning icon + text.

@@ -44,3 +44,12 @@ npm install
 cp .env.example .env
 npm run dev   # :5175
 ```
+
+## Deploying (Vercel)
+
+`vercel.json` sets the Vite framework preset and a catch-all rewrite to `index.html`. Root
+Directory → `doctor-portal`; env var → `VITE_API_BASE_URL` pointing at the backend.
+
+`src/vite-env.d.ts` (`/// <reference types="vite/client" />`) must exist for `tsc -b` to
+recognize `import.meta.env` — `vite dev` doesn't typecheck strictly enough to catch its
+absence, but Vercel's build (`tsc -b && vite build`) does.

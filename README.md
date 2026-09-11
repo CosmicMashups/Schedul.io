@@ -43,6 +43,22 @@ Sign in to the staff portal first to create a clinic, doctor, service, and sched
 Use the new "Invite to Doctor Portal" button on a doctor's row to create a login you can then
 use to sign into the Doctor Portal.
 
+## Deployment
+
+Live architecture: three static frontends on **Vercel**, one containerized backend on
+**Render**, one Postgres database on **Supabase**. See [`backend/README.md`](backend/README.md#deploying-to-render)
+for the full Render/Supabase walkthrough including gotchas hit getting it running, and
+[`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) for a from-scratch, tool-agnostic version of the
+same process written up as a general Java-system deployment manual.
+
+- `backend/Dockerfile` builds the Spring Boot jar (Maven multi-stage build → JRE runtime) —
+  point Render's Root Directory at `backend/` and it auto-detects the Dockerfile.
+- Each frontend has its own `vercel.json` (Vite framework preset + SPA rewrite for React
+  Router) — point Vercel's Root Directory at `patient-portal/`, `staff-portal/`, or
+  `doctor-portal/` per project, and set `VITE_API_BASE_URL` to the Render backend's URL.
+- `patient-portal` additionally needs `VITE_DEFAULT_TENANT_ID` — its "Find a doctor" page is
+  reachable before login, so there's no session yet to carry the tenant.
+
 ## What's still open
 
 - No real SMS/email gateway (backend stub; the swap-in point is one method)
