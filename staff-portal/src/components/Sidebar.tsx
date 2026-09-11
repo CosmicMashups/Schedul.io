@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, CalendarClock, UserCheck, ListOrdered, Users, Stethoscope,
   ClipboardList, CalendarRange, BarChart3, LogOut, LayoutGrid,
@@ -63,10 +63,14 @@ export function Sidebar() {
       </nav>
       <button
         onClick={() => { clearSession(); navigate('/login'); }}
-        className="mx-5 mb-5 flex items-center gap-1.5 text-left text-xs text-ink/40 hover:text-coral focus-ring"
+        className="mx-5 mb-3 flex items-center gap-1.5 text-left text-xs text-ink/40 hover:text-coral focus-ring"
       >
         <LogOut size={13} /> Sign out
       </button>
+      <div className="mx-5 mb-5 flex items-center gap-3 text-[10px] text-ink/30">
+        <Link to="/terms" className="hover:text-ink/60 focus-ring rounded">Terms</Link>
+        <Link to="/privacy" className="hover:text-ink/60 focus-ring rounded">Privacy</Link>
+      </div>
     </aside>
   );
 }

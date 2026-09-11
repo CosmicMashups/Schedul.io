@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { LogIn } from 'lucide-react';
 import { login } from '../api/auth';
@@ -108,6 +108,11 @@ export default function Login() {
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
+          <p className="mt-5 text-center text-[11px] text-ink/40">
+            <Link to="/terms" className="hover:text-ink focus-ring rounded">Terms of Service</Link>
+            {' · '}
+            <Link to="/privacy" className="hover:text-ink focus-ring rounded">Privacy Policy</Link>
+          </p>
         </div>
       </div>
     </div>

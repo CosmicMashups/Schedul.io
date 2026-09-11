@@ -96,7 +96,8 @@ export default function Register() {
           />
           <span>
             I consent to Schedul.io collecting and processing my personal and health information
-            for the purpose of scheduling and delivering care, per the clinic's privacy notice.
+            for the purpose of scheduling and delivering care, per the{' '}
+            <a href="/privacy" target="_blank" rel="noreferrer" className="text-teal hover:text-teal-dark underline underline-offset-2">Privacy Policy</a>.
           </span>
         </label>
 
