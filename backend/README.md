@@ -79,18 +79,26 @@ clinics depend on this, even though it's the more expensive option at low/spiky 
 1. Create a project at [supabase.com](https://supabase.com) — free tier (500MB) is enough to
    start; upgrade to Pro ($25/mo, 8GB included) before onboarding a real clinic.
 2. In the project dashboard, go to **Project Settings → Database → Connection info**. Use the
-   **Direct connection** (port `5432`), not the Session/Transaction pooler — this app already
-   manages its own connection pool via HikariCP (`maximum-pool-size: 20`), so layering
-   Supabase's PgBouncer pooler underneath it adds nothing and, in Transaction mode, actively
-   breaks Hibernate's server-side prepared statements.
+   **Session pooler** tab, not Direct connection and not Transaction pooler:
+   - Direct connection now resolves to an **IPv6-only address** on most Supabase projects
+     (unless you pay for the IPv4 add-on). Render's outbound networking doesn't reliably reach
+     IPv6 hosts, so a Direct connection from Render times out at the TCP level
+     (`SocketTimeoutException: Connect timed out`) — it's not a config or credentials problem,
+     the host just isn't reachable.
+   - Transaction pooler (port `6543`) is IPv4-reachable but breaks Hibernate's server-side
+     prepared statements, since it doesn't guarantee the same backend connection across
+     statements in a transaction.
+   - **Session pooler** (port `5432`) is the one that works: IPv4-reachable *and* each client
+     gets a session-scoped connection, so it behaves like a direct connection as far as
+     Hibernate/HikariCP are concerned.
 3. Set these env vars wherever the backend runs (Render, etc.):
 
    | Env var | Value |
    |---|---|
-   | `DB_HOST` | the project's direct-connection host, e.g. `db.<project-ref>.supabase.co` |
-   | `DB_PORT` | `5432` |
+   | `DB_HOST` | the Session pooler host, e.g. `aws-0-<region>.pooler.supabase.com` |
+   | `DB_PORT` | `5432` (Session pooler port — **not** `6543`, that's the Transaction pooler) |
    | `DB_NAME` | `postgres` (Supabase's default database name) |
-   | `DB_USER` | `postgres` |
+   | `DB_USER` | `postgres.<project-ref>` — the pooler requires the project ref suffixed onto the username, unlike a direct connection's plain `postgres` |
    | `DB_PASSWORD` | the database password you set when creating the project |
    | `DB_SSL_PARAMS` | `?sslmode=require` — Supabase requires SSL; local dev leaves this unset |
 
